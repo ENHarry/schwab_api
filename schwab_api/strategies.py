@@ -13,7 +13,7 @@ class Strategies:
     def existing_strategies(self):
         return self.strategies_list
 
-    def bear_call(self, account_id, symbol, short_call_strike, long_call_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def bear_call(self, symbol, short_call_strike, long_call_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -39,7 +39,7 @@ class Strategies:
         }
         return order_data
 
-    def bear_put(self, account_id, symbol, short_put_strike, long_put_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def bear_put(self,  symbol, short_put_strike, long_put_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -65,7 +65,7 @@ class Strategies:
         }
         return order_data
 
-    def bull_call(self, account_id, symbol, long_call_strike, short_call_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def bull_call(self,  symbol, long_call_strike, short_call_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -91,7 +91,7 @@ class Strategies:
         }
         return order_data
 
-    def bull_put(self, account_id, symbol, long_put_strike, short_put_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def bull_put(self,  symbol, long_put_strike, short_put_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -117,7 +117,7 @@ class Strategies:
         }
         return order_data
 
-    def covered_call(self, account_id, symbol, quantity, call_strike, stock_quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def covered_call(self,  symbol, quantity, call_strike, stock_quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -143,7 +143,7 @@ class Strategies:
         }
         return order_data
 
-    def long_call_butterfly(self, account_id, symbol, lower_strike, middle_strike, upper_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def long_call_butterfly(self,  symbol, lower_strike, middle_strike, upper_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,
@@ -177,7 +177,7 @@ class Strategies:
         }
         return order_data
 
-    def long_call_condor(self, account_id, symbol, lower_strike, lower_middle_strike, upper_middle_strike, upper_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
+    def long_call_condor(self, symbol, lower_strike, lower_middle_strike, upper_middle_strike, upper_strike, quantity, asset_type='OPTION', order_type='LIMIT', price=None):
         order_data = {
             'orderType': order_type,
             'price': price,

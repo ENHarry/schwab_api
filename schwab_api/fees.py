@@ -1,3 +1,5 @@
+import requests
+
 class Fees:
     def __init__(self, auth):
         self.auth = auth

@@ -1,19 +1,13 @@
 import requests
 from .strategies import Strategies
 
-'''
-Object for placing trades on Charles Schwab. 
-
-'''
 class Trades:
     def __init__(self, auth):
         self.auth = auth
-        self.base_url = None
+        self.base_url = 'https://api.schwabapi.com/trader/v1/accounts'        
         self.is_paper_account = False
         self.order_data = None
         self.supported_asset_types = ['EQUITY', 'OPTION', 'FUTURE', 'FOREX', 'INDEX', 'MUTUAL_FUND', 'CASH_EQUIVALENT', 'FIXED_INCOME']
-        self.order_type_list = ['MARKET', 'LIMIT', 'STOP', 'STOP_LIMIT', 'TRAILING_STOP', 
-                               'NET_DEBIT','OCO', 'TRAILING_STOP_LIMIT']
 
     def set_paper_account(self, is_paper):
         self.is_paper_account = is_paper
@@ -130,10 +124,3 @@ class Trades:
             ]
         }
         return order_data
-
-    # hidden method that initiates market orders for sequrities
-    def _place_security_order(self, account_id, symbol, quantity, action, order_type, price=None, use_margin=False):
-        NotImplementedError
-
-    def _place_index_order(self, account_id, symbol, quantity, action, order_type, price=None, use_margin=False):
-        NotImplementedError

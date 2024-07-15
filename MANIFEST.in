@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include setup.py
+recursive-include schwab_api *.py
+recursive-include tests *.py
