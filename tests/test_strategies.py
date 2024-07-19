@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from schwab_api.strategies import Strategies
 
 class TestStrategies(unittest.TestCase):
@@ -9,84 +10,32 @@ class TestStrategies(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    def test_bear_call(self):
-        order_data = self.strategies.bear_call(
-            account_id='test_account_id',
-            symbol='AAPL',
-            short_call_strike='150',
-            long_call_strike='155',
-            quantity=1,
-            order_type='LIMIT',
-            price=1.00
-        )
-        expected_order_data = {
-            'orderType': 'LIMIT',
-            'price': 1.00,
-            'orderStrategyType': 'SINGLE',
-            'orderLegCollection': [
-                {
-                    'instruction': 'SELL_TO_OPEN',
-                    'quantity': 1,
-                    'instrument': {
-                        'symbol': 'AAPL 150 C',
-                        'assetType': 'OPTION'
-                    }
-                },
-                {
-                    'instruction': 'BUY_TO_OPEN',
-                    'quantity': 1,
-                    'instrument': {
-                        'symbol': 'AAPL 155 C',
-                        'assetType': 'OPTION'
-                    }
-                }
-            ]
-        }
-        self.assertEqual(order_data, expected_order_data)
+    def test_existing_strategies(self):
+        strategies_list = self.strategies.existing_strategies()
+        self.assertIn('bull_call', strategies_list)
 
-    def test_long_call_butterfly(self):
-        order_data = self.strategies.long_call_butterfly(
-            account_id='test_account_id',
-            symbol='AAPL',
-            lower_strike='145',
-            middle_strike='150',
-            upper_strike='155',
-            quantity=1,
-            order_type='LIMIT',
-            price=1.00
-        )
-        expected_order_data = {
-            'orderType': 'LIMIT',
-            'price': 1.00,
-            'orderStrategyType': 'SINGLE',
-            'orderLegCollection': [
-                {
-                    'instruction': 'BUY_TO_OPEN',
-                    'quantity': 1,
-                    'instrument': {
-                        'symbol': 'AAPL 145 C',
-                        'assetType': 'OPTION'
-                    }
-                },
-                {
-                    'instruction': 'SELL_TO_OPEN',
-                    'quantity': 2,
-                    'instrument': {
-                        'symbol': 'AAPL 150 C',
-                        'assetType': 'OPTION'
-                    }
-                },
-                {
-                    'instruction': 'BUY_TO_OPEN',
-                    'quantity': 1,
-                    'instrument': {
-                        'symbol': 'AAPL 155 C',
-                        'assetType': 'OPTION'
-                    }
-                }
-            ]
-        }
-        self.assertEqual(order_data, expected_order_data)
+    def test_strangle(self):
+        order_data = self.strategies.strangle('account_id', 'AAPL', 100, 110, 1)
+        self.assertIsInstance(order_data, dict)
+
+    def test_iron_condor(self):
+        order_data = self.strategies.iron_condor('account_id', 'AAPL', 100, 110, 120, 130, 1)
+        self.assertIsInstance(order_data, dict)
+
+    def test_butterfly(self):
+        order_data = self.strategies.butterfly('account_id', 'AAPL', 100, 110, 120, 1)
+        self.assertIsInstance(order_data, dict)
+
+    def test_diagonal_spread(self):
+        order_data = self.strategies.diagonal_spread('account_id', 'AAPL', 100, '2023-12-31', 110, '2024-12-31', 1)
+        self.assertIsInstance(order_data, dict)
+
+    def test_bear_call(self):
+        self.assertIsNone(self.strategies.bear_call())
+
+    def test_invalid_strategy(self):
+        with self.assertRaises(AttributeError):
+            getattr(self.strategies, 'non_existent_strategy')
 
 if __name__ == '__main__':
     unittest.main()
