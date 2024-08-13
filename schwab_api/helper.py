@@ -1,10 +1,13 @@
 import datetime
+import pandas as pd
+from typing import Union
 
 class HelperFuncs:
     def __init__(self):
         pass
 
-    def __validate_fields(self, fields):
+    @staticmethod
+    def _validate_fields(fields: Union[list, str]):
         """
         Validates the fields parameter.
         
@@ -12,29 +15,38 @@ class HelperFuncs:
         :return: None
         """
         valid_fields = ['quote', 'fundamental', 'extended', 'reference', 'regular']
-        if fields not in valid_fields:
-            raise ValueError("Fields parameter must be one of: " + ", ".join(valid_fields))
-        else:
-            if fields is str:
-                fields = fields.replace(' ', '')
-            else:
-                fields = ','.join(fields).replace(' ', '')
-            return fields
+
+        if isinstance(fields, str):
+            fields = fields.split(',')
+            for field in fields:
+                if field.strip() not in valid_fields:
+                    raise ValueError("Fields parameter must be one of: " + ", ".join(valid_fields))
+            new_fields = ','.join(fields).replace(' ', '')
+            return new_fields
+        elif isinstance(fields, list):
+            for field in fields:
+                if field.strip() not in valid_fields:
+                    raise ValueError("Fields parameter must be one of: " + ", ".join(valid_fields))
+            new_fields = ','.join(fields).replace(' ', '')
+            return new_fields      
         
-    def __format_symbols(self, symbols):
+        
+    @staticmethod
+    def _format_symbols(symbols: Union[list, str]):
         """
         Formats the symbols parameter.
         
         :param symbols: List of symbols to retrieve quotes for
         :return: Formatted symbols string
         """
-        if symbols is str:
+        if type(symbols) is str:
             symbols = symbols.replace(' ', '')
         else:
             symbols = ','.join(symbols).replace(' ', '')
         return symbols
     
-    def __validate_contractType(self, contractType):
+    @staticmethod 
+    def _validate_contractType(contractType: str):
         """
         Validates the contractType parameter.
         
@@ -46,8 +58,8 @@ class HelperFuncs:
             raise ValueError("Contract type parameter must be one of: " + ", ".join(valid_contractTypes))
         else:
             return contractType
-        
-    def __validate_strategy(self, strategy):
+    @staticmethod  
+    def _validate_strategy(strategy: str):
         """
         Validates the strategy parameter.
         
@@ -61,8 +73,8 @@ class HelperFuncs:
             raise ValueError("Strategy parameter must be one of: " + ", ".join(valid_strategies))
         else:
             return strategy
-        
-    def __validate_assetType(self, assetType):
+    @staticmethod  
+    def _validate_assetType(assetType: str):
         """
         Validates the assetType parameter.
         
@@ -76,7 +88,8 @@ class HelperFuncs:
         else:
             return assetType  
 
-    def __validate_abbr_contractType(self, contractType):
+    @staticmethod
+    def _validate_abbr_contractType(contractType: str):
         """
         Validates the contractType parameter.
         
@@ -94,8 +107,8 @@ class HelperFuncs:
             elif contractType == 'PUT':
                 contractType = 'P'
             return contractType 
-
-    def __validate_range(self, range):
+    @staticmethod
+    def _validate_range(range: str):
         """
         Validates the range parameter.
         
@@ -108,7 +121,8 @@ class HelperFuncs:
         else:
             return range
 
-    def __validate_periodType(self, periodType):
+    @staticmethod
+    def _validate_periodType(periodType: str):
         """
         Validates the periodType parameter.
         
@@ -119,8 +133,9 @@ class HelperFuncs:
             raise ValueError("Period type parameter must be one of: " + ", ".join(valid_periodTypes))
         else:
             return periodType
+
            
-    def __validate_period(self,periodType,period):
+    def _validate_period(self,periodType,period: int):
         """
         Validates the period parameter.
         
@@ -130,7 +145,7 @@ class HelperFuncs:
         month_valid_values = [1, 2, 3, 6]
         year_valid_values = [1, 2, 3, 5, 10, 15, 20]
         ytd_valid_value = 1
-        periodType = self.__validate_periodType(periodType)
+        periodType = self._validate_periodType(periodType)
         if periodType == 'day' and period not in day_valid_values:
             raise ValueError("Due to your periodType being 'day', the Period parameter must be one of: " + ", ".join(day_valid_values))
         elif periodType == 'month' and period not in month_valid_values:
@@ -142,7 +157,8 @@ class HelperFuncs:
         else:
             return period
         
-    def __validate_frequencyType(self, frequencyType, periodType):
+    
+    def _validate_frequencyType(self, frequencyType: str, periodType):
         """
         Validates the frequencyType parameter.
         
@@ -153,7 +169,7 @@ class HelperFuncs:
         year_valid_values = ['daily', 'weekly', 'monthly']
         ytd_valid_values = ['daily', 'weekly']
 
-        periodType = self.__validate_periodType(periodType)
+        periodType = self._validate_periodType(periodType)
 
         if periodType == 'day' and frequencyType not in day_valid_value:
             raise ValueError("Due to your periodType being 'day', the FrequencyType parameter must be one of: " + ", ".join(day_valid_value))
@@ -167,11 +183,12 @@ class HelperFuncs:
             return frequencyType
 
 
-    def __validate_frequency(self, frequencyType, frequency):
+    
+    def _validate_frequency(self, frequencyType, frequency: int):
         """
         Validates the frequency parameter.
         """    
-        frequencyType = self.__validate_frequencyType(frequencyType)
+        frequencyType = self._validate_frequencyType(frequencyType)
         
         minute_valid_values = [1, 5, 10, 15, 30]
         daily_valid_value = 1
@@ -189,8 +206,55 @@ class HelperFuncs:
         else:
             return frequency    
 
-    def __date_format(self, date):
+    
+    def _date_format(self, date: str):
         """
         Formats the date parameter.
         """
         return datetime.epoch(date)
+    
+    def _parse_json_to_dataframe(json_file):
+    
+        # Create a list to store all rows of data
+        rows = []
+        
+        # Iterate over each key (symbol) in the JSON data
+        for symbol, details in json_file.items():
+            # Flatten the nested structure for the 'quote' and 'reference' keys
+            flattened_data = {**details['quote'], **details['reference']}
+            
+            # Add the symbol to the data
+            flattened_data['symbol'] = symbol
+            
+            # Append to the list of rows
+            rows.append(flattened_data)
+        
+        # Convert the list of rows to a DataFrame
+        df = pd.DataFrame(rows)
+        
+        return df
+    
+    def _validate_month(self, month: Union[int, str]):
+        """
+        Validates the month parameter.
+        """
+
+        if isinstance(month, int) and month not in range(1, 13):
+            raise ValueError("The Month parameter must be an integer between 1 and 12.")
+        elif isinstance(month, str):
+            if len(month) > 3:
+                month = month[:3].upper()
+                return month
+            elif len(month) == 3:
+                month = month.upper()
+                return month    
+        elif isinstance(month, int) in range(1, 13):
+            mnth_str = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+            mnth_int = list(range(1, 13))
+            mnth_dict = dict(zip(mnth_int, mnth_str))
+            month = mnth_dict[month]
+            return month
+        else:   
+            month = 'ALL' 
+            return month 
