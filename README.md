@@ -7,5 +7,4 @@ Unofficial Python package for Charles Schwab "Individual Trader API". It's still
 pip install schwab_api
 
 
-python -m unittest discover
 

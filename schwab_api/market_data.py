@@ -192,15 +192,16 @@ class MarketData:
             data = response.json()
             df = pd.DataFrame(data['candles'])
             df['datetime'] = pd.to_datetime(df['datetime'], unit='ms')
-            logger.info(f"Retrieved historical data for {symbol}")
+            logger.info(f"Retrieved historical data for {symbols}")
             return df
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching historical data: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching historical data: {http_err}")
         except Exception as err:
             logger.error(f"An error occurred while fetching historical data: {err}")
-            raise SystemExit(f"An error occurred while fetching historical data: {err}")
-
+            raise SystemExit(f"An error occurred while fetching historical data: {err}") 
+        
+    
     @lru_cache(maxsize=128)    
     def get_active_gainers_losers(self, index_symbol="$SPX", sort = "VOLUME", frequency = 5):
         """

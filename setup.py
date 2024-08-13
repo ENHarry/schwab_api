@@ -12,10 +12,14 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'requests',
-        'json',
+        'requests',         
         'pandas',
-        'websockets'
+        'numpy',
+        'websockets',
+        'loguru',
+        'python-dotenv',
+        'selenium',
+        'webdriver-manager',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

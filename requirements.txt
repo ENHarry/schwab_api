@@ -1,5 +1,8 @@
 requests
-json
 pandas
 numpy
-unittest
+websockets
+loguru
+python-dotenv
+selenium
+webdriver-manager
