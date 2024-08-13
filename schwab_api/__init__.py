@@ -4,6 +4,7 @@ from .trades import Trades
 from .strategies import Strategies
 from .market_data import MarketData
 from .fees import Fees
+from .helper import HelperFuncs
 
 class SchwabAPI:
     def __init__(self, client_id, client_secret):
@@ -13,3 +14,4 @@ class SchwabAPI:
         self.strategies = Strategies(self.auth)
         self.market_data = MarketData(self.auth)
         self.fees = Fees(self.auth)
+        self.helper = HelperFuncs()

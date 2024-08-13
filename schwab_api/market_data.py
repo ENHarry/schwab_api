@@ -4,7 +4,9 @@ import json
 import logging
 import websockets
 import asyncio
+from typing import Union
 from functools import lru_cache
+from schwab_api.helper import HelperFuncs
 
 logger = logging.getLogger(__name__)
 class MarketData:
@@ -22,7 +24,7 @@ class MarketData:
         self.base_url = 'https://api.schwabapi.com/marketdata/v1'
         self.websocket_url = 'wss://api.schwabapi.com/marketdata/v1/stream'
         
-    def get_symbol_quotes(self, symbol, fields='quote, reference'):
+    def get_symbol_quote(self, symbol: str, fields: Union[list, str] ='quote, reference'):
         """
         Retrieves quotes for a single symbol.
         
@@ -30,9 +32,11 @@ class MarketData:
         :param fields: Fields to include in the quote
         :return: DataFrame containing symbol quotes
         """
+        fields = HelperFuncs.__validate_fields(fields)
+
         url = f"{self.base_url}/{symbol}/quotes"
         headers = self.auth.get_headers()
-        params = {'symbol': symbol, 'fields': fields}
+        params = {'fields': fields}
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -47,7 +51,7 @@ class MarketData:
             raise SystemExit(f"An error occurred while fetching symbol quotes: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_quotes(self, symbols, fields='quote, reference', indicative=False):
+    def get_quotes(self, symbols: Union[list, str], fields: Union[list, str] ='quote, reference', indicative=False):
         """
         Retrieves quotes for multiple symbols.
         
@@ -58,7 +62,9 @@ class MarketData:
         """
         url = f"{self.base_url}/quotes"
         headers = self.auth.get_headers()
-        params = {'symbol': ','.join(symbols), 'fields': fields, 'indicative': str(indicative).lower()}
+        params = {'symbol': HelperFuncs.__format_symbols(symbols), 
+                  'fields': HelperFuncs.__validate_fields(fields), 
+                  'indicative': str(indicative).lower()}
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -73,11 +79,11 @@ class MarketData:
             raise SystemExit(f"An error occurred while fetching quotes: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_option_chains(self, symbol, contract_type='CALL', strike_count=None, includeUnderlyingQuote=True, 
-                        strategy ="ANALYTICAL", interval= 1, strike_price=None, 
-                        range='ITM', fromDate=None, toDate=None, volatility=None, 
+    def get_option_chains(self, symbol: str, contract_type: str, strike_count=None, includeUnderlyingQuote=True, 
+                        strategy=None, interval=None, strike_price=None, 
+                        range=None, fromDate=None, toDate=None, volatility=None, 
                         underlying_price=None, interest_rate=None, daysToExpire=None, 
-                        expMonth=None, option_type=None, entillment="PP"):
+                        expMonth=None,option_type=None, entillment=None):
         """
         Retrieves option chains for a specific symbol.
         
@@ -102,6 +108,13 @@ class MarketData:
         """
         url = f"{self.base_url}/chains"
         headers = self.auth.get_headers()
+        if strategy is not None:
+            strategy = HelperFuncs.__validate_strategy(strategy)
+        if range is not None:
+            range = HelperFuncs.__validate_range(range)
+        if contract_type is not None:
+            contract_type = HelperFuncs.__validate_contract_type(contract_type)
+
         params = {'symbol': symbol,
                     'contractType': contract_type,
                     'strikeCount': strike_count,
@@ -118,7 +131,8 @@ class MarketData:
                     'daysToExpiration': daysToExpire,
                     'expMonth': expMonth,
                     'optionType': option_type,
-                    'entitlement': entillment}
+                    'entitlement': entillment
+                    }
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -147,7 +161,7 @@ class MarketData:
             response = requests.get(url, headers=headers, params=param)
             response.raise_for_status()
             logger.info(f"Retrieved option expiration chain for {symbol}")
-            return response.json()
+            return pd.DataFrame(response.json())
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching option expiration chain: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching option expiration chain: {http_err}")
@@ -156,9 +170,9 @@ class MarketData:
             raise SystemExit(f"An error occurred while fetching option expiration chain: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_historical_data(self, symbol, period_type='year', period=1, frequency_type='minute', 
-                            frequency=1, start_date=None, end_date=None, needExtendedHoursData=False,
-                            needPreviousClose=False):
+    def get_historical_data(self, symbol, period_type=None, period=None, frequency_type=None, 
+                            frequency=None, start_date=None, end_date=None, needExtendedHoursData=False,
+                            needPreviousClose=True):
         """
         Retrieves historical data for a symbol.
         
@@ -175,6 +189,29 @@ class MarketData:
         """
         url = f"{self.base_url}/pricehistory"
         headers = self.auth.get_headers()
+        if period_type is not None:
+            period_type = HelperFuncs.__validate_period_type(period_type)
+        
+        if frequency_type is not None and period_type is not None:
+            frequency_type = HelperFuncs.__validate_frequency_type(frequency_type)
+        elif frequency_type is not None and period_type is None:
+            raise ValueError("If 'frequency_type' is provided, 'period_type' must also be provided.")
+        
+        if period is not None and period_type is not None:
+            period = HelperFuncs.__validate_period(period)
+        elif period is not None and period_type is None:
+            raise ValueError("If 'period' is provided, 'period_type' must also be provided.")
+        
+        if frequency is not None and frequency_type is not None:
+            frequency = HelperFuncs.__validate_frequency(frequency)
+        elif frequency is not None and frequency_type is None:
+            raise ValueError("If 'frequency' is provided, 'frequency_type' must also be provided.")
+        
+        if start_date is not None:
+            start_date = HelperFuncs.__validate_date(start_date)
+        if end_date is not None:
+            end_date = HelperFuncs.__validate_date(end_date)
+
         params = {
             'symbol': symbol,
             'periodType': period_type,
@@ -192,7 +229,7 @@ class MarketData:
             data = response.json()
             df = pd.DataFrame(data['candles'])
             df['datetime'] = pd.to_datetime(df['datetime'], unit='ms')
-            logger.info(f"Retrieved historical data for {symbols}")
+            logger.info(f"Retrieved historical data for {symbol}")
             return df
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching historical data: {http_err}")
@@ -282,25 +319,6 @@ class MarketData:
         finally:
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
-    def _concatenate_symbols(self,string_list):
-        """
-        Concatenates a list of symbols into a single string with appropriate separators.
-        
-        :param string_list: List of symbols
-        :return: Concatenated string of symbols
-        """
-        result = ""
-        for s in string_list:
-            if s.startswith("$"):
-                separator = "%24"
-                s = s[1:]  # Remove the leading "$"
-            else:
-                separator = "%2"
-            
-            if result:
-                result += separator
-            result += s
-        return result
 
     def get_all_market_hours(self, date=None):
         """
@@ -401,3 +419,5 @@ class MarketData:
         except Exception as err:
             logger.error(f"An error occurred while fetching instrument by CUSIP: {err}")
             raise SystemExit(f"An error occurred while fetching instrument by CUSIP: {err}")
+
+    
