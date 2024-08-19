@@ -1,12 +1,14 @@
 import requests
-import pandas as pd
+from datetime import datetime
 import json
 import logging
 import websockets
 import asyncio
+import pandas as pd
 from typing import Union
 from functools import lru_cache
 from schwab_api.helper import HelperFuncs
+
 
 logger = logging.getLogger(__name__)
 class MarketData():
@@ -23,6 +25,7 @@ class MarketData():
         self.auth = auth
         self.base_url = 'https://api.schwabapi.com/marketdata/v1'
         self.websocket_url = 'wss://api.schwabapi.com/marketdata/v1/stream'
+        self.helper = HelperFuncs()
         
 
     def get_symbol_quote(self, symbol: str, fields: Union[list, str] =['quote', 'reference']):
@@ -33,7 +36,7 @@ class MarketData():
         :param fields: Fields to include in the quote
         :return: DataFrame containing symbol quotes
         """
-        fields = HelperFuncs._validate_fields(fields)
+        fields = self.helper._validate_fields(fields)
 
         url = f"{self.base_url}/{symbol}/quotes"
         headers = self.auth.get_headers()
@@ -43,7 +46,7 @@ class MarketData():
             response.raise_for_status()
             data = response.json()
             logger.info(f"Retrieved symbol quotes for {symbol}")
-            return HelperFuncs._parse_json_to_dataframe(data)
+            return self.helper._parse_json_to_dataframe(data)
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching symbol quotes: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching symbol quotes: {http_err}")
@@ -52,7 +55,7 @@ class MarketData():
             raise SystemExit(f"An error occurred while fetching symbol quotes: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_quotes(self, symbols: Union[list, str], fields: Union[list, str] ='quote, reference', indicative=False):
+    def get_quotes(self, symbols: Union[list, str], fields: Union[list, str] = 'quote, reference', indicative=False):
         """
         Retrieves quotes for multiple symbols.
         
@@ -61,26 +64,32 @@ class MarketData():
         :param indicative: Boolean indicating if indicative prices should be included
         :return: DataFrame containing quotes for multiple symbols
         """
+        syms = self.helper._format_symbols(symbols=symbols)
+        
+        # Ensure fields are validated and converted to a string
+        fields = self.helper._validate_fields(fields=fields)
+        
         url = f"{self.base_url}/quotes"
         headers = self.auth.get_headers()
-        fields = HelperFuncs._validate_fields(fields)
-        symbols = HelperFuncs._format_symbols(symbols)
-
-        params = {'symbols': symbols, 
-                  'fields': fields, 
-                  'indicative': str(indicative).lower()}
+        
+        params = {
+            'symbols': syms, 
+            'fields': fields, 
+            'indicative': str(indicative).lower()
+        }
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             data = response.json()
-            logger.info(f"Retrieved quotes for symbols: {symbols}")
-            return HelperFuncs._parse_json_to_dataframe(data)
+            logger.info(f"Retrieved quotes for symbols: {syms}")
+            return self.helper._parse_json_to_dataframe(data)
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching quotes: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching quotes: {http_err}")
         except Exception as err:
             logger.error(f"An error occurred while fetching quotes: {err}")
             raise SystemExit(f"An error occurred while fetching quotes: {err}")
+
 
     @lru_cache(maxsize=128)    
     def get_option_chains(self, symbol: str, contract_type: str, strike_count=None, includeUnderlyingQuote=True, 
@@ -113,16 +122,16 @@ class MarketData():
         url = f"{self.base_url}/chains"
         headers = self.auth.get_headers()
         if strategy is not None:
-            strategy = HelperFuncs._validate_strategy(strategy=strategy)
+            strategy = self.helper._validate_strategy(strategy=strategy)
         
         if range is not None:
-            range = HelperFuncs._validate_range(range=range)
+            range = self.helper._validate_range(range=range)
         
         if contract_type is not None:
-            contract_type = HelperFuncs._validate_contractType(contractType=contract_type)
+            contract_type = self.helper._validate_contractType(contractType=contract_type)
 
         if expMonth is not None:
-            expMonth = HelperFuncs._validate_month(expMonth)    
+            expMonth = self.helper._validate_month(month=expMonth)    
 
         params = {'symbol': symbol,
                     'contractType': contract_type,
@@ -147,13 +156,15 @@ class MarketData():
             response.raise_for_status()
             data = response.json()
             logger.info(f"Retrieved option chains for {symbol}")
-            return HelperFuncs._parse_json_to_dataframe(data)
+            
+            return self.helper._optionchain_to_dataframe(json_data=data)
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching option chains: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching option chains: {http_err}")
         except Exception as err:
             logger.error(f"An error occurred while fetching option chains: {err}")
             raise SystemExit(f"An error occurred while fetching option chains: {err}")
+
 
     @lru_cache(maxsize=128)
     def get_option_expiration_chain(self, symbol):
@@ -170,7 +181,8 @@ class MarketData():
             response = requests.get(url, headers=headers, params=param)
             response.raise_for_status()
             logger.info(f"Retrieved option expiration chain for {symbol}")
-            return HelperFuncs._parse_json_to_dataframe(response.json())
+            data = response.json()['expirationList']
+            return pd.DataFrame(data)
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching option expiration chain: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching option expiration chain: {http_err}")
@@ -199,27 +211,29 @@ class MarketData():
         url = f"{self.base_url}/pricehistory"
         headers = self.auth.get_headers()
         if period_type is not None:
-            period_type = HelperFuncs._validate_period_type(period_type)
+            period_type = self.helper._validate_periodType(periodType=period_type)
         
         if frequency_type is not None and period_type is not None:
-            frequency_type = HelperFuncs._validate_frequency_type(frequency_type)
+            frequency_type = self.helper._validate_frequencyType(frequencyType=frequency_type,
+                                                                 periodType=period_type)
         elif frequency_type is not None and period_type is None:
             raise ValueError("If 'frequency_type' is provided, 'period_type' must also be provided.")
         
         if period is not None and period_type is not None:
-            period = HelperFuncs._validate_period(period)
+            period = self.helper._validate_period(period=period, periodType=period_type)
         elif period is not None and period_type is None:
             raise ValueError("If 'period' is provided, 'period_type' must also be provided.")
         
         if frequency is not None and frequency_type is not None:
-            frequency = HelperFuncs._validate_frequency(frequency)
+            frequency = self.helper._validate_frequency(frequency=frequency, 
+                                                        frequencyType=frequency_type, periodType=period_type)
         elif frequency is not None and frequency_type is None:
             raise ValueError("If 'frequency' is provided, 'frequency_type' must also be provided.")
         
         if start_date is not None:
-            start_date = HelperFuncs._validate_date(start_date)
+            start_date = self.helper._date_format(date=start_date)
         if end_date is not None:
-            end_date = HelperFuncs._validate_date(end_date)
+            end_date = self.helper._date_format(date=end_date)
 
         params = {
             'symbol': symbol,
@@ -236,8 +250,13 @@ class MarketData():
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             data = response.json()
-            df = HelperFuncs._parse_json_to_dataframe(data['candles'])
-            df['datetime'] = pd.to_datetime(df['datetime'], unit='ms')
+            print(data)
+            df = pd.DataFrame(data['candles'])
+            """df['date'] = datetime.fromtimestamp(df['datetime']).strftime("%Y-%m-%d")
+            df['time'] = datetime.fromtimestamp(df['datetime']).strftime("%H:%M:%S")
+            df['previousClose'] = data['previousClose'].astype(float)
+            df['symbol'] = data['symbol']
+            df['previousCloseDate'] = data['previousCloseDate'].astype('datetime64[ns]')"""
             logger.info(f"Retrieved historical data for {symbol}")
             return df
         except requests.exceptions.HTTPError as http_err:
@@ -249,7 +268,7 @@ class MarketData():
         
     
     @lru_cache(maxsize=128)    
-    def get_active_gainers_losers(self, index_symbol="$SPX", sort = "VOLUME", frequency = 5):
+    def get_active_gainers_losers(self, index_symbol: str = "$SPX", sort = "VOLUME", frequency = 5):
         """
         Retrieves active gainers and losers for a specified index.
         
@@ -260,16 +279,17 @@ class MarketData():
         """
         url = f"{self.base_url}/movers/{index_symbol}"
         params = {
-            'symbol_id': index_symbol,
-            'sort': sort,
-            'frequency': frequency
+            'symbol_id': self.helper._validate_indexSymbol(index_symbol),
+            'sort': self.helper._validate_sort(sort),
+            'frequency': self.helper._validate_history_frequency(frequency)
         }
         headers = self.auth.get_headers()
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             logger.info(f"Retrieved active gainers and losers for {index_symbol}")
-            return HelperFuncs._parse_json_to_dataframe(response.json())
+            data = response.json()['screeners']
+            return pd.DataFrame(data)
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching active gainers/losers: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching active gainers/losers: {http_err}")
@@ -294,7 +314,7 @@ class MarketData():
                 if line:
                     data = json.loads(line.decode('utf-8'))
                     logger.info(f"Streaming live data for symbols: {', '.join(symbols)}")
-                    yield HelperFuncs._parse_json_to_dataframe([data])
+                    yield self.helper._parse_json_to_dataframe([data])
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while streaming live data: {http_err}")
             raise SystemExit(f"HTTP error occurred while streaming live data: {http_err}")
@@ -316,7 +336,7 @@ class MarketData():
             async for message in websocket:
                 data = json.loads(message)
                 logger.info(f"Received real-time data: {data}")
-                yield HelperFuncs._parse_json_to_dataframe(data)
+                yield self.helper._parse_json_to_dataframe(data)
 
     def run_stream(self, symbols):
         """
@@ -329,7 +349,7 @@ class MarketData():
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
 
-    def get_all_market_hours(self, date=None):
+    def get_all_market_hours(self, date: str =None):
         """
         Retrieves market hours for all available markets.
         
@@ -345,7 +365,7 @@ class MarketData():
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             logger.info(f"Retrieved market hours for all available markets")
-            return HelperFuncs._parse_json_to_dataframe(response.json())
+            return self.helper._parse_json_to_dataframe(response.json())
         except requests.exceptions.HTTPError as http_err:
             logger.error(f"HTTP error occurred while fetching market hours: {http_err}")
             raise SystemExit(f"HTTP error occurred while fetching market hours: {http_err}")
@@ -363,7 +383,7 @@ class MarketData():
         """
         url = f"{self.base_url}/markets/"
         params = {
-            'market_id': market_id,
+            'market_id': self.helper._validate_markets(market_id),
             'date': date
         }
         headers = self.auth.get_headers()

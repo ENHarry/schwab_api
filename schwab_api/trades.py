@@ -18,18 +18,18 @@ class Trades:
                                'NET_DEBIT','OCO', 'TRAILING_STOP_LIMIT']
         self.strategies = Strategies(self.auth)
 
-    def set_paper_account(self, is_paper):
+    def _set_paper_account(self):
         """
         Set the account type to either paper or live.
         """
-        self.is_paper_account = is_paper
-        logger.info(f"Set account to {'paper' if is_paper else 'live'}")
+        self.is_paper_account = self.auth.get_accType()
+        logger.info(f"Set account to {'paper' if self.is_paper_account else 'live'}")
 
-    def place_order(self, account_id, asset_type='OPTION', trading_strategy='bull_call', is_paper=False, **kwargs):
+    def place_order(self, account_id, asset_type='OPTION', trading_strategy='buy_market_stock',  **kwargs):
         """
         Place an order for a specific trading strategy and asset type.
         """
-        self.set_paper_account(is_paper)
+        self._set_paper_account()
         
         if asset_type not in self.supported_asset_types:
             logger.error(f"Asset type {asset_type} is not supported by the Schwab API.")

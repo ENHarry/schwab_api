@@ -5,6 +5,7 @@ from typing import Union
 class HelperFuncs:
     def __init__(self):
         pass
+        
 
     @staticmethod
     def _validate_fields(fields: Union[list, str]):
@@ -32,18 +33,25 @@ class HelperFuncs:
         
         
     @staticmethod
-    def _format_symbols(symbols: Union[list, str]):
+    def _format_symbols(symbols):
         """
         Formats the symbols parameter.
         
         :param symbols: List of symbols to retrieve quotes for
         :return: Formatted symbols string
         """
-        if type(symbols) is str:
-            symbols = symbols.replace(' ', '')
+        if isinstance(symbols, str):
+            symb = symbols.replace(' ', '')
+            return symb
+        elif isinstance(symbols, list):
+            if not all(isinstance(item, str) for item in symbols):
+                raise ValueError("All items in the symbols list must be strings")
+            print("Converting the Symbols list to string: ", symbols)
+            symb = ','.join(symbols).replace(' ', '')
+            return symb
         else:
-            symbols = ','.join(symbols).replace(' ', '')
-        return symbols
+            raise ValueError("Symbols parameter must be a string or list of strings")
+
     
     @staticmethod 
     def _validate_contractType(contractType: str):
@@ -134,8 +142,8 @@ class HelperFuncs:
         else:
             return periodType
 
-           
-    def _validate_period(self,periodType,period: int):
+    @staticmethod       
+    def _validate_period(periodType,period: int):
         """
         Validates the period parameter.
         
@@ -144,8 +152,8 @@ class HelperFuncs:
         day_valid_values = [1, 2, 3, 4, 5, 10]
         month_valid_values = [1, 2, 3, 6]
         year_valid_values = [1, 2, 3, 5, 10, 15, 20]
-        ytd_valid_value = 1
-        periodType = self._validate_periodType(periodType)
+        ytd_valid_value = [1]
+        periodType = HelperFuncs._validate_periodType(periodType=periodType)
         if periodType == 'day' and period not in day_valid_values:
             raise ValueError("Due to your periodType being 'day', the Period parameter must be one of: " + ", ".join(day_valid_values))
         elif periodType == 'month' and period not in month_valid_values:
@@ -157,19 +165,19 @@ class HelperFuncs:
         else:
             return period
         
-    
-    def _validate_frequencyType(self, frequencyType: str, periodType):
+    @staticmethod
+    def _validate_frequencyType( frequencyType: str, periodType):
         """
         Validates the frequencyType parameter.
         
         :param frequencyType: The timefrequency with which a new candle is formed.
         """
-        day_valid_value = 'minute' # valid values is minute
+        day_valid_value = ['minute'] # valid values is minute
         month_valid_values = ['daily', 'weekly']
         year_valid_values = ['daily', 'weekly', 'monthly']
         ytd_valid_values = ['daily', 'weekly']
 
-        periodType = self._validate_periodType(periodType)
+        periodType = HelperFuncs._validate_periodType(periodType=periodType)
 
         if periodType == 'day' and frequencyType not in day_valid_value:
             raise ValueError("Due to your periodType being 'day', the FrequencyType parameter must be one of: " + ", ".join(day_valid_value))
@@ -183,17 +191,17 @@ class HelperFuncs:
             return frequencyType
 
 
-    
-    def _validate_frequency(self, frequencyType, frequency: int):
+    @staticmethod
+    def _validate_frequency(frequencyType, frequency: int, periodType):
         """
         Validates the frequency parameter.
         """    
-        frequencyType = self._validate_frequencyType(frequencyType)
+        frequencyType = HelperFuncs._validate_frequencyType(frequencyType=frequencyType, periodType=periodType)
         
         minute_valid_values = [1, 5, 10, 15, 30]
-        daily_valid_value = 1
-        weekly_valid_value = 1
-        monthly_valid_value = 1
+        daily_valid_value = [1]
+        weekly_valid_value = [1]
+        monthly_valid_value = [1]
         
         if frequencyType == 'minute' and frequency not in minute_valid_values:
             raise ValueError("Due to your frequencyType being 'minute', the Frequency parameter must be one of: " + ", ".join(minute_valid_values))
@@ -206,13 +214,15 @@ class HelperFuncs:
         else:
             return frequency    
 
-    
-    def _date_format(self, date: str):
+    @staticmethod
+    def _date_format(date: str):
         """
         Formats the date parameter.
         """
-        return datetime.epoch(date)
+        ndate = datetime.datetime.strptime(date, "%Y-%m-%d")
+        return int(ndate.timestamp())
     
+    @staticmethod
     def _parse_json_to_dataframe(json_file):
     
         # Create a list to store all rows of data
@@ -234,7 +244,8 @@ class HelperFuncs:
         
         return df
     
-    def _validate_month(self, month: Union[int, str]):
+    @staticmethod
+    def _validate_month(month: Union[int, str]):
         """
         Validates the month parameter.
         """
@@ -258,3 +269,156 @@ class HelperFuncs:
         else:   
             month = 'ALL' 
             return month 
+        
+    import pandas as pd
+
+    '''@staticmethod
+    def _flatten_json(self, nested_json, parent_key='', sep='_'):
+        """
+        Flatten a nested JSON object into a flat dictionary.
+        """
+        items = []
+        for k, v in nested_json.items():
+            new_key = f'{parent_key}{sep}{k}' if parent_key else k
+            if isinstance(v, dict):
+                items.extend(self._flatten_json(nested_json=v, parent_key=new_key, sep=sep).items())
+            elif isinstance(v, list):
+                if all(isinstance(i, dict) for i in v):
+                    for idx, item in enumerate(v):
+                        items.extend(self._flatten_json(nested_json=item, parent_key=f'{new_key}_{idx}', sep=sep).items())
+                else:
+                    items.append((new_key, v))
+            else:
+                items.append((new_key, v))
+        return dict(items)'''
+
+    @staticmethod
+    def _flatten_json(nested_json, parent_key='', sep='_'):
+        """
+        Flattens a nested JSON object into a flat dictionary.
+        
+        :param nested_json: The JSON object to flatten
+        :param parent_key: The base key for the flattened keys
+        :param sep: The separator between keys
+        :return: A flattened dictionary
+        """
+        items = []
+        for k, v in nested_json.items():
+            new_key = f'{parent_key}{sep}{k}' if parent_key else k
+            if isinstance(v, dict):
+                items.extend(HelperFuncs._flatten_json(v, new_key, sep=sep).items())
+            elif isinstance(v, list):
+                if all(isinstance(i, dict) for i in v):
+                    for idx, item in enumerate(v):
+                        items.extend(HelperFuncs._flatten_json(item, f'{new_key}_{idx}', sep=sep).items())
+                else:
+                    items.append((new_key, v))
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    @staticmethod
+    def _extract_specific_keys(option_data):
+        """
+        Extract specific keys and their values from the option data.
+        """
+        specific_keys = [
+            'bid', 'ask', 'last', 'mark', 'bidSize', 'askSize', 'closePrice', 'totalVolume',
+            'tradeTimeInLong', 'quoteTimeInLong', 'volatility', 'delta', 'timeValue',
+            'theoreticalOptionValue', 'theoreticalVolatility', 'intrinsicValue', 'extrinsicValue',
+            'inTheMoney'
+        ]
+        extracted_data = {key: option_data.get(key) for key in specific_keys}
+        return extracted_data
+
+    
+    def _optionchain_to_dataframe(self,json_data):
+        # Load the JSON data from the file
+        
+
+        # Initialize a list to store all rows for the dataframe
+        rows = []
+
+        # Flatten the "underlying" data
+        underlying_data = self._flatten_json(json_data.get("underlying", {}))
+
+        # Check and process callExpDateMap if present
+        if "callExpDateMap" in json_data:
+            call_exp_date_map = json_data["callExpDateMap"]
+            for exp_date, strikes in call_exp_date_map.items():
+                for  strike_price, options_list in strikes.items():
+                    for option in options_list:
+                        row = underlying_data.copy()
+                        row.update(self._flatten_json(option))
+                        row.update(self._extract_specific_keys(option))
+                        row['exp_date_type'] = "CALL"
+                        row['exp_date'] = exp_date
+                        rows.append(row)
+        
+        # Check and process putExpDateMap if present
+        if "putExpDateMap" in json_data:
+            put_exp_date_map = json_data["putExpDateMap"]
+            for exp_date, strikes in put_exp_date_map.items():
+                for strike_price, options_list in strikes.items():
+                    for option in options_list:
+                        row = underlying_data.copy()
+                        row.update(self._flatten_json(option))
+                        row.update(self._extract_specific_keys(option))
+                        row['exp_date_type'] = "PUT"
+                        row['exp_date'] = exp_date
+                        rows.append(row)
+
+        # Create a DataFrame
+        df = pd.DataFrame(rows)
+
+        # Ensure all columns are unique
+        df = df.loc[:, ~df.columns.duplicated()]
+
+        return df
+    
+    @staticmethod
+    def _validate_indexSymbol(indexSymbol):
+        """
+        Validates the indexSymbol parameter.
+        """
+        available_values = ['$DJI', '$COMPX', '$SPX', 'NYSE', 'NASDAQ', 'OTCBB', 
+                            'INDEX_ALL', 'EQUITY_ALL', 'OPTION_ALL', 'OPTION_PUT', 'OPTION_CALL']
+        if indexSymbol not in available_values:
+            raise ValueError(f"Invalid indexSymbol. Available values: {', '.join(available_values)}")
+        else:
+            return indexSymbol
+        
+    @staticmethod
+    def _validate_sort(sort):
+        """
+        Validates the sort parameter.
+        """
+        available_values = ['VOLUME', 'TRADES', 'PERCENT_CHANGE_UP', 'PERCENT_CHANGE_DOWN']
+        if sort not in available_values:
+            raise ValueError(f"Invalid sort. Available values: {', '.join(available_values)}")
+        else:
+            return sort
+        
+    @staticmethod
+    def _validate_history_frequency(frequency):
+        """
+        Validates the frequency parameter.
+        """
+        available_values = [0, 1, 5, 10, 30, 60]
+        if frequency not in available_values:
+            raise ValueError(f"Invalid frequency. Available values: {', '.join(available_values)}")
+        else:
+            return frequency
+        
+    @staticmethod
+    def _validate_markets(market):
+        """
+        Validates the market parameter.
+        """
+        available_values = ['equity','option','bond', 'forex', 'future']
+        if market not in available_values:
+            raise ValueError(f"Invalid market. Available values: {', '.join(available_values)}")
+        else:
+            return market
+        
+    

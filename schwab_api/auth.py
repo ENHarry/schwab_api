@@ -16,7 +16,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class SchwabAuth:
     def __init__(self, client_id, client_secret, redirect_uri='https://127.0.0.1', username='', password='',
-                 refresh_token=None): 
+                 refresh_token=None, is_paper_account=False): 
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
@@ -28,8 +28,12 @@ class SchwabAuth:
         self.token_expires_in = 0
         self.base_url = 'https://api.schwabapi.com/v1/oauth'
         self.refresh_token = refresh_token
+        self.is_paper_account = is_paper_account
         
 
+    def get_accType(self):
+        return self.is_paper_account
+    
     def _get_auth_header(self):
         auth_str = f"{self.client_id}:{self.client_secret}"
         auth_bytes = auth_str.encode('ascii')
