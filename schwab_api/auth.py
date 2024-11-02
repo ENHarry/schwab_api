@@ -53,7 +53,7 @@ class SchwabAuth:
         
             # Set up Firefox options
             firefox_options = Options()
-            firefox_options.add_argument("--headless")  # Run in headless mode
+            #firefox_options.add_argument("--headless")  # Run in headless mode
             firefox_options.add_argument("--no-sandbox")
             firefox_options.add_argument("--disable-dev-shm-usage")
             
@@ -66,8 +66,8 @@ class SchwabAuth:
 
                 # Wait for the login button to be clickable
                 # login_xpath = '//button[@id="btnLogin"]'
-                login_xpath = '//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[4]/button'
-                WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, login_xpath)))
+                login_xpath = '//*[@id="btnLogin"]'  #'//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[4]/button'
+                WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.XPATH, login_xpath)))
                 login_url = driver.current_url
                 print('Expected Login URL: https://sws-gateway.schwab.com/ui/host/#/login-one-step')
                 print("Login URL:")
@@ -75,10 +75,10 @@ class SchwabAuth:
                 print("------------------------------------------------")
 
                 # Set XPath for username and password fields
-                # usr_xpath = '//input[@id="loginIdInput"]'
-                usr_xpath = '//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[2]/div/div/input' 
+                # usr_xpath = '//input[@id="loginIdInput"]' 
+                usr_xpath = '//*[@id="loginIdInput"]' #'//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[2]/div/div/input' 
                 # pswd_xpath = '//input[@id="passwordInput"]'
-                pswd_xpath = '//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[3]/div/input'
+                pswd_xpath = '//*[@id="passwordInput"]' #'//lms-app-root/section/div[1]/div/section/lms-login-one-step-container/lms-login-one-step/section/div[1]/div[3]/div/input'
 
                 # Automatically fill in the login form
                 driver.find_element(By.XPATH, usr_xpath).send_keys(self.username)
@@ -86,7 +86,7 @@ class SchwabAuth:
                 driver.find_element(By.XPATH, login_xpath).click()
 
                 # Monitor for page load after login
-                WebDriverWait(driver, 10).until(lambda d: d.execute_script('return document.readyState') == 'complete')
+                WebDriverWait(driver, 20).until(lambda d: d.execute_script('return document.readyState') == 'complete')
                 
                 # store the step process url
                 process_url = driver.current_url
@@ -97,7 +97,7 @@ class SchwabAuth:
 
                 # Accept the terms and conditions if prompted and click the continue button
                 # //input[@id="acceptTerms"]
-                terms_xpath = '//lms-app-root/section/div[1]/div[1]/section/lms-cag-container[1]/lms-cag[1]/div[1]/form/div[1]/input[1]'
+                terms_xpath = '//*[@id="acceptTerms"]' #'//lms-app-root/section/div[1]/div[1]/section/lms-cag-container[1]/lms-cag[1]/div[1]/form/div[1]/input[1]'
                 if driver.find_elements(By.XPATH, terms_xpath):
                     driver.find_element(By.XPATH, terms_xpath).click()
                     print("Accepted Terms")

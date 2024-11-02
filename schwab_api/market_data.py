@@ -8,6 +8,7 @@ import pandas as pd
 from typing import Union
 from functools import lru_cache
 from schwab_api.helper import HelperFuncs
+from schwab_api.urls import SchwabUrls
 
 
 logger = logging.getLogger(__name__)
@@ -23,12 +24,12 @@ class MarketData():
         :param auth: SchwabAuth object for authentication
         """
         self.auth = auth
-        self.base_url = 'https://api.schwabapi.com/marketdata/v1'
-        self.websocket_url = 'wss://api.schwabapi.com/marketdata/v1/stream'
+        self.urls = SchwabUrls()
         self.helper = HelperFuncs()
         
 
-    def get_symbol_quote(self, symbol: str, fields: Union[list, str] =['quote', 'reference']):
+    def get_symbol_quote(self, symbol: str, livestream: bool = False, 
+                         fields: Union[list, str] =['quote', 'reference']):
         """
         Retrieves quotes for a single symbol.
         
@@ -38,7 +39,7 @@ class MarketData():
         """
         fields = self.helper._validate_fields(fields)
 
-        url = f"{self.base_url}/{symbol}/quotes"
+        url = self.urls.get_symbol_quote_url(symbol, livestream)
         headers = self.auth.get_headers()
         params = {'fields': fields}
         try:
@@ -55,7 +56,8 @@ class MarketData():
             raise SystemExit(f"An error occurred while fetching symbol quotes: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_quotes(self, symbols: Union[list, str], fields: Union[list, str] = 'quote, reference', indicative=False):
+    def get_quotes(self, symbols: Union[list, str], livestream: bool = False,
+                   fields: Union[list, str] = 'quote, reference', indicative=False):
         """
         Retrieves quotes for multiple symbols.
         
@@ -69,7 +71,7 @@ class MarketData():
         # Ensure fields are validated and converted to a string
         fields = self.helper._validate_fields(fields=fields)
         
-        url = f"{self.base_url}/quotes"
+        url = self.urls.get_quotes_url(livestream)
         headers = self.auth.get_headers()
         
         params = {
@@ -96,7 +98,7 @@ class MarketData():
                         strategy=None, interval=None, strike_price=None, 
                         range=None, fromDate=None, toDate=None, volatility=None, 
                         underlying_price=None, interest_rate=None, daysToExpire=None, 
-                        expMonth=None,option_type=None, entillment=None):
+                        expMonth=None,option_type=None, entillment=None, livestream=False):
         """
         Retrieves option chains for a specific symbol.
         
@@ -119,7 +121,7 @@ class MarketData():
         :param entillment: Entitlement for the option chain
         :return: DataFrame containing option chains
         """
-        url = f"{self.base_url}/chains"
+        url = self.urls.get_optionchains_url(livestream)
         headers = self.auth.get_headers()
         if strategy is not None:
             strategy = self.helper._validate_strategy(strategy=strategy)
@@ -167,14 +169,14 @@ class MarketData():
 
 
     @lru_cache(maxsize=128)
-    def get_option_expiration_chain(self, symbol):
+    def get_option_expiration_chain(self, symbol, livestream=False):
         """
         Retrieves option expiration chains for a symbol.
         
         :param symbol: Symbol to retrieve option expiration chains for
         :return: JSON response containing option expiration chains
         """
-        url = f"{self.base_url}/expirationchain"
+        url = self.urls.get_optionchain_expiry_url(livestream)
         param ={'symbol': symbol}
         headers = self.auth.get_headers()
         try:
@@ -208,7 +210,7 @@ class MarketData():
         :param needPreviousClose: Boolean indicating if previous close data is needed
         :return: DataFrame containing historical data
         """
-        url = f"{self.base_url}/pricehistory"
+        url = self.urls.get_pricehistory_url()
         headers = self.auth.get_headers()
         if period_type is not None:
             period_type = self.helper._validate_periodType(periodType=period_type)
@@ -246,6 +248,8 @@ class MarketData():
             'needExtendedHoursData': needExtendedHoursData,
             'needPreviousClose': needPreviousClose
         }
+
+
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
@@ -277,7 +281,7 @@ class MarketData():
         :param frequency: Frequency of the data
         :return: JSON response containing active gainers and losers
         """
-        url = f"{self.base_url}/movers/{index_symbol}"
+        url = self.urls.get_movers_url(index_symbol)
         params = {
             'symbol_id': self.helper._validate_indexSymbol(index_symbol),
             'sort': self.helper._validate_sort(sort),
@@ -304,7 +308,7 @@ class MarketData():
         :param symbols: List of symbols to stream live data for
         :yield: DataFrame containing live data for each symbol
         """
-        url = f"{self.base_url}/stream"
+        url = self.urls.get_livedata_url()
         headers = self.auth.get_headers()
         params = {'symbols': ','.join(symbols)}
         try:
@@ -326,7 +330,7 @@ class MarketData():
         """
         Streams real-time data using WebSocket for a list of symbols.
         """
-        async with websockets.connect(self.websocket_url) as websocket:
+        async with websockets.connect(self.urls.get_livestream_url()) as websocket:
             subscribe_message = json.dumps({
                 "action": "subscribe",
                 "symbols": symbols
@@ -356,7 +360,7 @@ class MarketData():
         :param date: Date for which to retrieve market hours
         :return: JSON response containing market hours
         """
-        url = f"{self.base_url}/markets"
+        url = self.urls.get_markethours_url()
         params = {
             'date': date
         }
@@ -381,7 +385,7 @@ class MarketData():
         :param date: Date for which to retrieve market hours
         :return: JSON response containing market hours
         """
-        url = f"{self.base_url}/markets/"
+        url = self.urls.get_markethours_url()
         params = {
             'market_id': self.helper._validate_markets(market_id),
             'date': date
@@ -407,7 +411,7 @@ class MarketData():
         :param projection: Projection type (e.g., 'symbol-search', 'fundamental')
         :return: JSON response containing instrument details
         """
-        url = f"{self.base_url}/instruments"
+        url = self.urls.get_instruments_url()
         params = {
             'symbol': symbol,
             'projection': projection
@@ -432,7 +436,7 @@ class MarketData():
         :param cusip: CUSIP of the instrument
         :return: JSON response containing instrument details
         """
-        url = f"{self.base_url}/instruments/"
+        url = self.urls.get_instruments_url()
         params = {
             'cusip': cusip
         }
