@@ -2,6 +2,7 @@ import datetime
 import pandas as pd
 from typing import Union
 
+
 class HelperFuncs:
     def __init__(self):
         pass
@@ -215,10 +216,12 @@ class HelperFuncs:
             return frequency    
 
     @staticmethod
-    def _date_format(date: str):
+    def _date_format(date: Union[int, str]):
         """
         Formats the date parameter.
         """
+        if isinstance(date, int):
+            return date
         ndate = datetime.datetime.strptime(date, "%Y-%m-%d")
         return int(ndate.timestamp())
     
@@ -270,7 +273,6 @@ class HelperFuncs:
             month = 'ALL' 
             return month 
         
-    import pandas as pd
 
     '''@staticmethod
     def _flatten_json(self, nested_json, parent_key='', sep='_'):

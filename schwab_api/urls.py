@@ -31,7 +31,10 @@ class SchwabUrls:
         url = cls.get_auth_base_url()
         return f"{url}/authorize?client_id={client_id}&redirect_uri={redirect_uri}"
 
-
+    @classmethod
+    def get_token_url(cls):
+        url = cls.get_auth_base_url()
+        return f"{url}/token"
 #/--------------------------- Accounts ---------------------------/
     @classmethod
     def get_account_url(cls):
@@ -55,7 +58,7 @@ class SchwabUrls:
     @classmethod
     def get_symbol_quote_url(cls, symbol):
         url = cls.get_market_data_url()
-        return f"{url}/{symbol}quotes"
+        return f"{url}/{symbol}/quotes"
     
     @classmethod
     def get_quotes_url(cls):
@@ -68,8 +71,8 @@ class SchwabUrls:
         return f"{url}/chains"
     
     @classmethod
-    def get_optionchain_expiry_url(cls, livestream=False):
-        url = cls.get_optionchains_url(livestream)
+    def get_optionchain_expiry_url(cls):
+        url = cls.get_market_data_url()
         return f"{url}/expirationchain"
     
     @classmethod

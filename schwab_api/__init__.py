@@ -5,7 +5,7 @@ from .market_data import MarketData
 from .fees import Fees
 from .helper import HelperFuncs
 from .urls import SchwabUrls
-from .auth import SchwabAuth as HeadlessAuth
+from .auth import SchwabAuthe as HeadlessAuth
 
 class SchwabAPI:
     def __init__(self, client_id, client_secret):

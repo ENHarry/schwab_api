@@ -38,8 +38,19 @@ class SchwabAuth:
     def authenticate(self):
         auth_url = self.urls.get_auth_url(self.client_id, self.redirect_uri)
         print("Auth URL:", auth_url)
+
+        # check if refresh token is provided or stored in a pickle file
         if self.refresh_token:
             self.refresh()
+        elif not self.refresh_token:
+            try:
+                import pickle
+                with open('./session_data/refresh_token.pkl', 'rb') as f:
+                    self.refresh_token = pickle.load(f)
+                self.refresh()
+            except FileNotFoundError:
+                pass
+        
         else:
             # Set up Firefox options and Selenium Wire options
             firefox_options = Options()
@@ -128,6 +139,28 @@ class SchwabAuth:
         self.refresh_token = token_data.get('refresh_token', None)
         self.token_expires_in = token_data.get('expires_in', 1800)
 
+        if not self.token:
+            raise ValueError("Failed to exchange authorization code for access token.")
+
+        self._start_auto_refresh()
+
+        # Store the refresh token in a pickle file
+        import pickle
+        import os
+
+        # get the current working directory
+        dir_path = os.getcwd()
+
+        # Check if the directory exists and create it if it doesn't
+        dir_path = "./session_data"
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        # create a pickle file to store the refresh token
+        if self.refresh_token:
+            with open(f'{dir_path}/refresh_token.pkl', 'wb') as f:
+                pickle.dump(self.refresh_token, f)
+
     def refresh(self):
         headers = {
             'Authorization': self._get_auth_header(),
@@ -150,3 +183,17 @@ class SchwabAuth:
         return {
             'Authorization': f"Bearer {self.token}"
         }
+
+    def _start_auto_refresh(self):
+        """
+        Automatically refresh the token before it expires.
+        """
+        def refresh_token():
+            while True:
+                time.sleep(max(self.token_expires_in - 30, 0))  # Refresh 30 seconds before expiry
+                self.refresh()
+
+        refresh_thread = threading.Thread(target=refresh_token, daemon=True)
+        refresh_thread.start()
+
+    

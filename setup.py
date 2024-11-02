@@ -20,6 +20,8 @@ setup(
         'python-dotenv',
         'selenium',
         'webdriver-manager',
+        'blinker==1.4',
+        'selenium-wire',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

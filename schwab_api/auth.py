@@ -14,7 +14,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-class SchwabAuth:
+class SchwabAuthe:
     def __init__(self, client_id, client_secret, redirect_uri='https://127.0.0.1', username='', password='',
                  refresh_token=None, is_paper_account=False): 
         self.client_id = client_id
@@ -46,11 +46,18 @@ class SchwabAuth:
         print(auth_url)
         print("------------------------------------------------")
 
-        # if a separate session has been run with a refresh token, use that one
+        # check if refresh token is provided or stored in a pickle file
         if self.refresh_token:
             self.refresh()
+        elif not self.refresh_token:
+            try:
+                import pickle
+                with open('./session_data/refresh_token.pkl', 'rb') as f:
+                    self.refresh_token = pickle.load(f)
+                self.refresh()
+            except FileNotFoundError:
+                pass
         else:
-        
             # Set up Firefox options
             firefox_options = Options()
             #firefox_options.add_argument("--headless")  # Run in headless mode
@@ -213,6 +220,23 @@ class SchwabAuth:
             raise ValueError("Failed to exchange authorization code for access token.")
 
         self._start_auto_refresh()
+
+        # Store the refresh token in a pickle file
+        import pickle
+        import os
+
+        # get the current working directory
+        dir_path = os.getcwd()
+
+        # Check if the directory exists and create it if it doesn't
+        dir_path = "./session_data"
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        # create a pickle file to store the refresh token
+        if self.refresh_token:
+            with open(f'{dir_path}/refresh_token.pkl', 'wb') as f:
+                pickle.dump(self.refresh_token, f)
 
     def refresh(self):
         """

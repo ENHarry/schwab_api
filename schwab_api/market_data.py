@@ -28,7 +28,7 @@ class MarketData():
         self.helper = HelperFuncs()
         
 
-    def get_symbol_quote(self, symbol: str, livestream: bool = False, 
+    def get_symbol_quote(self, symbol: str,
                          fields: Union[list, str] =['quote', 'reference']):
         """
         Retrieves quotes for a single symbol.
@@ -39,7 +39,7 @@ class MarketData():
         """
         fields = self.helper._validate_fields(fields)
 
-        url = self.urls.get_symbol_quote_url(symbol, livestream)
+        url = self.urls.get_symbol_quote_url(symbol)
         headers = self.auth.get_headers()
         params = {'fields': fields}
         try:
@@ -56,7 +56,7 @@ class MarketData():
             raise SystemExit(f"An error occurred while fetching symbol quotes: {err}")
 
     @lru_cache(maxsize=128)    
-    def get_quotes(self, symbols: Union[list, str], livestream: bool = False,
+    def get_quotes(self, symbols: Union[list, str],
                    fields: Union[list, str] = 'quote, reference', indicative=False):
         """
         Retrieves quotes for multiple symbols.
@@ -71,7 +71,7 @@ class MarketData():
         # Ensure fields are validated and converted to a string
         fields = self.helper._validate_fields(fields=fields)
         
-        url = self.urls.get_quotes_url(livestream)
+        url = self.urls.get_quotes_url()
         headers = self.auth.get_headers()
         
         params = {
@@ -94,11 +94,11 @@ class MarketData():
 
 
     @lru_cache(maxsize=128)    
-    def get_option_chains(self, symbol: str, contract_type: str, strike_count=None, includeUnderlyingQuote=True, 
-                        strategy=None, interval=None, strike_price=None, 
-                        range=None, fromDate=None, toDate=None, volatility=None, 
+    def get_option_chains(self, symbol: str, contract_type: str, strike_count=None, 
+                          includeUnderlyingQuote: bool =True, strategy=None, interval=None, 
+                          strike_price=None, range=None, fromDate=None, toDate=None, volatility=None, 
                         underlying_price=None, interest_rate=None, daysToExpire=None, 
-                        expMonth=None,option_type=None, entillment=None, livestream=False):
+                        expMonth=None,option_type=None, entillment=None):
         """
         Retrieves option chains for a specific symbol.
         
@@ -121,7 +121,7 @@ class MarketData():
         :param entillment: Entitlement for the option chain
         :return: DataFrame containing option chains
         """
-        url = self.urls.get_optionchains_url(livestream)
+        url = self.urls.get_optionchains_url()
         headers = self.auth.get_headers()
         if strategy is not None:
             strategy = self.helper._validate_strategy(strategy=strategy)
@@ -169,14 +169,14 @@ class MarketData():
 
 
     @lru_cache(maxsize=128)
-    def get_option_expiration_chain(self, symbol, livestream=False):
+    def get_option_expiration_chain(self, symbol: str):
         """
         Retrieves option expiration chains for a symbol.
         
         :param symbol: Symbol to retrieve option expiration chains for
         :return: JSON response containing option expiration chains
         """
-        url = self.urls.get_optionchain_expiry_url(livestream)
+        url = self.urls.get_optionchain_expiry_url()
         param ={'symbol': symbol}
         headers = self.auth.get_headers()
         try:
@@ -194,7 +194,7 @@ class MarketData():
 
     @lru_cache(maxsize=128)    
     def get_historical_data(self, symbol, period_type=None, period=None, frequency_type=None, 
-                            frequency=None, start_date=None, end_date=None, needExtendedHoursData=False,
+                            frequency=None, start_date:Union[str, int] =None, end_date: Union[str, int]=None, needExtendedHoursData=False,
                             needPreviousClose=True):
         """
         Retrieves historical data for a symbol.
@@ -312,7 +312,7 @@ class MarketData():
         headers = self.auth.get_headers()
         params = {'symbols': ','.join(symbols)}
         try:
-            response = requests.get(url, headers=headers, params=params, stream=True)
+            response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
             for line in response.iter_lines():
                 if line:
